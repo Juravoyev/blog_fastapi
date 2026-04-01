@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blog Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0f11;
+      --bg2: #15171a;
+      --bg3: #1c1e22;
+      --border: rgba(255,255,255,0.07);
+      --border-hover: rgba(255,255,255,0.14);
+      --text: #edecea;
+      --text2: #8a8780;
+      --text3: #555350;
+      --accent: #d4a853;
+      --accent-dim: rgba(212,168,83,0.12);
+      --accent-border: rgba(212,168,83,0.3);
+      --red: #e05b5b;
+      --red-dim: rgba(224,91,91,0.1);
+      --green: #4caf80;
+      --green-dim: rgba(76,175,128,0.1);
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── TOPBAR ─── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 60px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+    }
+    .logo span { color: var(--text2); font-size: 13px; font-family: 'DM Sans', sans-serif; margin-left: 8px; font-weight: 300; }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+    /* ─── BUTTONS ─── */
+    .btn {
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 400;
+      cursor: pointer;
+      border: 1px solid var(--border-hover);
+      background: var(--bg3);
+      color: var(--text);
+      transition: all 0.15s;
+      outline: none;
+    }
+    .btn:hover { border-color: var(--border-hover); background: #22252a; color: var(--text); }
+    .btn:active { transform: scale(0.98); }
+    .btn-accent {
+      background: var(--accent);
+      color: #0e0f11;
+      border-color: var(--accent);
+      font-weight: 500;
+    }
+    .btn-accent:hover { background: #e0b660; border-color: #e0b660; color: #0e0f11; }
+    .btn-danger { background: var(--red-dim); color: var(--red); border-color: rgba(224,91,91,0.25); }
+    .btn-danger:hover { background: rgba(224,91,91,0.18); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn-icon { padding: 7px 10px; }
+
+    /* ─── LAYOUT ─── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; flex: 1; }
+
+    /* ─── STATS ─── */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 2rem; }
+    .stat-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--border-hover); }
+    .stat-label { font-size: 12px; color: var(--text2); margin-bottom: 8px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .stat-value { font-size: 32px; font-family: 'DM Serif Display', serif; color: var(--text); }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.green { color: var(--green); }
+
+    /* ─── TOOLBAR ─── */
+    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .search-wrap { position: relative; }
+    .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: 0.4; }
+    .search-input {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px 8px 34px;
+      font-size: 13px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      width: 240px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input::placeholder { color: var(--text3); }
+    .search-input:focus { border-color: var(--accent-border); }
+
+    /* ─── TABLE ─── */
+    .table-wrap {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text3);
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    tbody tr { transition: background 0.12s; }
+    tbody tr:hover td { background: var(--bg3); }
+    tbody td {
+      padding: 14px 16px;
+      font-size: 13.5px;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    .td-id { color: var(--text3); width: 48px; }
+    .td-title { font-weight: 400; max-width: 260px; }
+    .td-title span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .td-author { color: var(--text2); }
+    .td-actions { text-align: right; white-space: nowrap; }
+    .td-actions .btn { margin-left: 4px; }
+
+    /* ─── BADGE ─── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 500;
+    }
+    .badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(76,175,128,0.2); }
+    .badge-gray { background: rgba(255,255,255,0.04); color: var(--text2); border: 1px solid var(--border); }
+    .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+    /* ─── EMPTY ─── */
+    .empty {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text2);
+    }
+    .empty-icon { font-size: 40px; margin-bottom: 1rem; opacity: 0.3; }
+    .empty h3 { font-size: 15px; font-weight: 400; margin-bottom: 6px; color: var(--text2); }
+    .empty p { font-size: 13px; color: var(--text3); }
+
+    /* ─── MODAL ─── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .overlay.active { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--border-hover);
+      border-radius: 14px;
+      width: 560px; max-width: 95vw;
+      padding: 1.75rem;
+      transform: translateY(10px);
+      transition: transform 0.2s;
+    }
+    .overlay.active .modal { transform: translateY(0); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+    .modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text); }
+    .modal-close { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 20px; line-height: 1; padding: 4px; transition: color 0.15s; }
+    .modal-close:hover { color: var(--text); }
+
+    /* ─── FORM ─── */
+    .form-group { margin-bottom: 1.1rem; }
+    .form-label { display: block; font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .form-control {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 14px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-control::placeholder { color: var(--text3); }
+    .form-control:focus { border-color: var(--accent-border); background: #1a1c20; }
+    textarea.form-control { resize: vertical; min-height: 110px; line-height: 1.6; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+
+    /* ─── DETAIL MODAL ─── */
+    .detail-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.25rem; }
+    .meta-pill {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 100px; padding: 4px 12px;
+      font-size: 12px; color: var(--text2);
+    }
+    .detail-body-text {
+      font-size: 14px; line-height: 1.75; color: var(--text2);
+      white-space: pre-wrap;
+      max-height: 320px; overflow-y: auto;
+      padding: 1rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .detail-actions { display: flex; gap: 8px; margin-top: 1.25rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+    /* ─── DELETE MODAL ─── */
+    .delete-modal { max-width: 400px; }
+    .delete-msg { font-size: 14px; color: var(--text2); line-height: 1.6; }
+    .delete-msg strong { color: var(--text); }
+
+    /* ─── TOAST ─── */
+    #toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; display: flex; flex-direction: column; gap: 8px; z-index: 999; }
+    .toast {
+      background: var(--bg3);
+      border: 1px solid var(--border-hover);
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: center; gap: 8px;
+      animation: slideIn 0.2s ease;
+      min-width: 240px;
+    }
+    .toast.success { border-color: rgba(76,175,128,0.3); }
+    .toast.error { border-color: rgba(224,91,91,0.3); }
+    .toast-icon { font-size: 15px; }
+    @keyframes slideIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes fadeOut { to { opacity:0; transform:translateX(20px); } }
+
+    /* ─── LOADER ─── */
+    .loader { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 3rem; color: var(--text2); font-size: 13px; }
+    .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── API NOTICE ─── */
+    .api-notice {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .td-author, .td-date { display: none; }
+      .search-input { width: 160px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo">
+    Blogi
+    <span>Admin Panel</span>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-accent" onclick="openCreate()">+ Yangi blog</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- API CONFIG NOTICE -->
+  <div class="api-notice">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="7" x2="8" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="5" r="0.8"/></svg>
+    Backend: <strong id="api-url-display">http://127.0.0.1:8000/api/blog</strong> &nbsp;·&nbsp;
+    <span style="opacity:0.7;">Agar URL farqli bo'lsa, sahifa kodi ichidagi <code>API_BASE</code> ni o'zgartiring</span>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Jami bloglar</div>
+      <div class="stat-value accent" id="stat-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Nashr qilingan</div>
+      <div class="stat-value green" id="stat-published">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Qoralama</div>
+      <div class="stat-value" id="stat-draft">—</div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#8a8780" stroke-width="1.5">
+        <circle cx="7" cy="7" r="5"/><line x1="11" y1="11" x2="14.5" y2="14.5" stroke-linecap="round"/>
+      </svg>
+      <input class="search-input" id="search" placeholder="Sarlavha yoki muallif..." oninput="filterBlogs()" />
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button class="btn btn-sm" onclick="loadBlogs()">⟳ Yangilash</button>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <div id="table-content">
+      <div class="loader"><div class="spinner"></div> Yuklanmoqda...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ MODALS ════════════════════════════════ -->
+
+<!-- CREATE / EDIT MODAL -->
+<div class="overlay" id="form-overlay" onclick="closeOnBg(event,'form-overlay')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="form-modal-title">Yangi blog</div>
+      <button class="modal-close" onclick="closeModal('form-overlay')">✕</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Sarlavha *</label>
+      <input class="form-control" id="f-title" type="text" placeholder="Blog sarlavhasini kiriting" maxlength="100" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Muallif ismi *</label>
+      <input class="form-control" id="f-author" type="text" placeholder="To'liq ism" maxlength="100" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Matn *</label>
+      <textarea class="form-control" id="f-body" placeholder="Blog matnini kiriting..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nashr sanasi va vaqti *</label>
+      <input class="form-control" id="f-published" type="datetime-local" />
+    </div>
+
+    <div class="form-footer">
+      <button class="btn" onclick="closeModal('form-overlay')">Bekor qilish</button>
+      <button class="btn btn-accent" onclick="submitForm()" id="submit-btn">Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detail-overlay" onclick="closeOnBg(event,'detail-overlay')">
+  <div class="modal" style="width:640px;">
+    <div class="modal-header">
+      <div class="modal-title" id="detail-title-el" style="font-size:17px; max-width:480px;"></div>
+      <button class="modal-close" onclick="closeModal('detail-overlay')">✕</button>
+    </div>
+    <div class="detail-meta" id="detail-meta"></div>
+    <div class="detail-body-text" id="detail-body-el"></div>
+    <div class="detail-actions">
+      <button class="btn btn-sm btn-danger" id="detail-delete-btn">O'chirish</button>
+      <button class="btn btn-sm btn-accent" id="detail-edit-btn">Tahrirlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="overlay" id="delete-overlay" onclick="closeOnBg(event,'delete-overlay')">
+  <div class="modal delete-modal">
+    <div class="modal-header">
+      <div class="modal-title" style="font-size:17px; color:var(--red);">Blogni o'chirish</div>
+      <button class="modal-close" onclick="closeModal('delete-overlay')">✕</button>
+    </div>
+    <p class="delete-msg" id="delete-msg"></p>
+    <div class="form-footer">
+      <button class="btn" onclick="closeModal('delete-overlay')">Bekor qilish</button>
+      <button class="btn btn-danger" id="delete-confirm-btn">Ha, o'chirish</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<script>
+  /* ═══════════════════ CONFIG ═══════════════════ */
+  const API_BASE = 'http://127.0.0.1:8000/api/blog';
+
+  /* ═══════════════════ STATE ═══════════════════ */
+  let allBlogs = [];
+  let editingId = null;
+  let pendingDeleteId = null;
+
+  /* ═══════════════════ INIT ═══════════════════ */
+  document.addEventListener('DOMContentLoaded', loadBlogs);
+
+  /* ═══════════════════ API HELPERS ═══════════════════ */
+  async function request(path, opts = {}) {
+    const res = await fetch(API_BASE + path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...opts
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Server xatosi: ${res.status}`);
+    }
+    if (res.status === 204) return null;
+    return res.json();
+  }
+
+  /* ═══════════════════ LOAD & RENDER ═══════════════════ */
+  async function loadBlogs() {
+    showLoader();
+    try {
+      allBlogs = await request('/');
+      renderBlogs(allBlogs);
+      updateStats(allBlogs);
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  function filterBlogs() {
+    const q = document.getElementById('search').value.toLowerCase().trim();
+    const filtered = q
+      ? allBlogs.filter(b => b.title.toLowerCase().includes(q) || b.author_name.toLowerCase().includes(q))
+      : allBlogs;
+    renderBlogs(filtered);
+  }
+
+  function updateStats(blogs) {
+    const pub = blogs.filter(b => b.published_at).length;
+    document.getElementById('stat-total').textContent = blogs.length;
+    document.getElementById('stat-published').textContent = pub;
+    document.getElementById('stat-draft').textContent = blogs.length - pub;
+  }
+
+  function showLoader() {
+    document.getElementById('table-content').innerHTML =
+      `<div class="loader"><div class="spinner"></div> Yuklanmoqda...</div>`;
+  }
+
+  function showError(msg) {
+    document.getElementById('table-content').innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">⚠</div>
+        <h3>Backend bilan ulanib bo'lmadi</h3>
+        <p>${msg}</p>
+        <br/>
+        <button class="btn btn-sm" onclick="loadBlogs()">Qayta urinish</button>
+      </div>`;
+  }
+
+  function renderBlogs(blogs) {
+    const wrap = document.getElementById('table-content');
+    if (!blogs.length) {
+      wrap.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">📝</div>
+          <h3>Blog topilmadi</h3>
+          <p>Yangi blog yarating yoki qidiruv so'zini o'zgartiring.</p>
+        </div>`;
+      return;
+    }
+
+    wrap.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th class="td-id">#</th>
+            <th>Sarlavha</th>
+            <th class="td-author">Muallif</th>
+            <th>Holati</th>
+            <th class="td-date">Yaratilgan</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${blogs.map(b => `
+            <tr>
+              <td class="td-id">${b.id}</td>
+              <td class="td-title"><span>${escHtml(b.title)}</span></td>
+              <td class="td-author">${escHtml(b.author_name)}</td>
+              <td>${b.published_at
+                ? `<span class="badge badge-green"><span class="dot"></span> Nashr</span>`
+                : `<span class="badge badge-gray"><span class="dot"></span> Qoralama</span>`
+              }</td>
+              <td class="td-date" style="color:var(--text3); font-size:12px;">${fmtDate(b.created_at)}</td>
+              <td class="td-actions">
+                <button class="btn btn-sm" onclick="openDetail(${b.id})">Ko'rish</button>
+                <button class="btn btn-sm" onclick="openEdit(${b.id})">Tahrir</button>
+                <button class="btn btn-sm btn-danger" onclick="openDelete(${b.id})">O'chir</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  /* ═══════════════════ DETAIL ═══════════════════ */
+  function openDetail(id) {
+    const b = allBlogs.find(x => x.id === id);
+    if (!b) return;
+
+    document.getElementById('detail-title-el').textContent = b.title;
+    document.getElementById('detail-meta').innerHTML = `
+      <span class="meta-pill">👤 ${escHtml(b.author_name)}</span>
+      ${b.published_at
+        ? `<span class="meta-pill" style="color:var(--green);">🟢 Nashr: ${fmtDate(b.published_at)}</span>`
+        : `<span class="meta-pill">⚪ Qoralama</span>`}
+      <span class="meta-pill">📅 ${fmtDate(b.created_at)}</span>
+      <span class="meta-pill">✏️ ${fmtDate(b.updated_at)}</span>
+    `;
+    document.getElementById('detail-body-el').textContent = b.body;
+    document.getElementById('detail-edit-btn').onclick = () => { closeModal('detail-overlay'); openEdit(id); };
+    document.getElementById('detail-delete-btn').onclick = () => { closeModal('detail-overlay'); openDelete(id); };
+
+    openModal('detail-overlay');
+  }
+
+  /* ═══════════════════ CREATE / EDIT ═══════════════════ */
+  function openCreate() {
+    editingId = null;
+    clearForm();
+    document.getElementById('form-modal-title').textContent = 'Yangi blog';
+    document.getElementById('submit-btn').textContent = 'Yaratish';
+    // default datetime = now + 1 hour
+    const dt = new Date(Date.now() + 3600000);
+    document.getElementById('f-published').value = toLocalISOString(dt);
+    openModal('form-overlay');
+  }
+
+  function openEdit(id) {
+    const b = allBlogs.find(x => x.id === id);
+    if (!b) return;
+    editingId = id;
+    document.getElementById('form-modal-title').textContent = 'Blogni tahrirlash';
+    document.getElementById('submit-btn').textContent = 'Saqlash';
+    document.getElementById('f-title').value = b.title;
+    document.getElementById('f-author').value = b.author_name;
+    document.getElementById('f-body').value = b.body;
+    document.getElementById('f-published').value = b.published_at ? toLocalISOString(new Date(b.published_at)) : '';
+    openModal('form-overlay');
+  }
+
+  async function submitForm() {
+    const title = document.getElementById('f-title').value.trim();
+    const author_name = document.getElementById('f-author').value.trim();
+    const body = document.getElementById('f-body').value.trim();
+    const pub = document.getElementById('f-published').value;
+
+    if (!title) { toast('Sarlavha kiritilishi shart', 'error'); return; }
+    if (!author_name) { toast('Muallif ismi kiritilishi shart', 'error'); return; }
+    if (!body) { toast('Matn kiritilishi shart', 'error'); return; }
+    if (!pub) { toast('Nashr sanasi kiritilishi shart', 'error'); return; }
+
+    const payload = {
+      title,
+      author_name,
+      body,
+      published_at: new Date(pub).toISOString()
+    };
+
+    const btn = document.getElementById('submit-btn');
+    btn.textContent = 'Saqlanmoqda...';
+    btn.disabled = true;
+
+    try {
+      if (editingId) {
+        await request('/' + editingId, { method: 'PUT', body: JSON.stringify(payload) });
+        toast('Blog yangilandi ✓', 'success');
+      } else {
+        await request('/', { method: 'POST', body: JSON.stringify(payload) });
+        toast('Blog yaratildi ✓', 'success');
+      }
+      closeModal('form-overlay');
+      await loadBlogs();
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      btn.textContent = editingId ? 'Saqlash' : 'Yaratish';
+      btn.disabled = false;
+    }
+  }
+
+  /* ═══════════════════ DELETE ═══════════════════ */
+  function openDelete(id) {
+    const b = allBlogs.find(x => x.id === id);
+    if (!b) return;
+    pendingDeleteId = id;
+    document.getElementById('delete-msg').innerHTML =
+      `"<strong>${escHtml(b.title)}</strong>" nomli blogni o'chirmoqchisiz. Bu amalni qaytarib bo'lmaydi.`;
+    document.getElementById('delete-confirm-btn').onclick = confirmDelete;
+    openModal('delete-overlay');
+  }
+
+  async function confirmDelete() {
+    if (!pendingDeleteId) return;
+    const btn = document.getElementById('delete-confirm-btn');
+    btn.textContent = 'O\'chirilmoqda...';
+    btn.disabled = true;
+    try {
+      await request('/' + pendingDeleteId, { method: 'DELETE' });
+      toast('Blog o\'chirildi', 'success');
+      closeModal('delete-overlay');
+      await loadBlogs();
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      btn.textContent = 'Ha, o\'chirish';
+      btn.disabled = false;
+      pendingDeleteId = null;
+    }
+  }
+
+  /* ═══════════════════ MODAL HELPERS ═══════════════════ */
+  function openModal(id) { document.getElementById(id).classList.add('active'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+  function closeOnBg(e, id) { if (e.target.id === id) closeModal(id); }
+
+  function clearForm() {
+    ['f-title','f-author','f-body','f-published'].forEach(id => document.getElementById(id).value = '');
+  }
+
+  /* ═══════════════════ TOAST ═══════════════════ */
+  function toast(msg, type = 'success') {
+    const icons = { success: '✓', error: '✕' };
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.innerHTML = `<span class="toast-icon">${icons[type] || '•'}</span> ${msg}`;
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(() => {
+      el.style.animation = 'fadeOut 0.3s ease forwards';
+      setTimeout(() => el.remove(), 300);
+    }, 3000);
+  }
+
+  /* ═══════════════════ UTILS ═══════════════════ */
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('uz-UZ', {
+      year: 'numeric', month: 'short', day: 'numeric'
+    });
+  }
+
+  function toLocalISOString(date) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ═══════════════════ KEYBOARD ═══════════════════ */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      ['form-overlay','detail-overlay','delete-overlay'].forEach(closeModal);
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      if (document.getElementById('form-overlay').classList.contains('active')) submitForm();
+    }
+  });
+</script>
+</body>
+</html>
