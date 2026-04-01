@@ -1,13 +1,25 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy import select
-from schemas import BlogCreate, BlogOut, BlogUpdate
+from schemas import BlogCreate, BlogOut, BlogUpdate, AuthorCreate, AuthorOut
 from database import Base, get_db, engine
-from models import Blog
+from models import Blog, Author
 from typing import List
 
 
 Base.metadata.create_all(bind=engine)
 api_router = APIRouter(prefix='/api/blog')
+
+@api_router.post('/authors', response_model=AuthorOut)
+def create_author(author_in: AuthorCreate, db = Depends(get_db)):
+    author = Author(
+        **author_in.model_dump()
+    )
+
+    db.add(author)
+    db.commit()
+    db.refresh(author)
+
+    return author
 
 @api_router.get('/', response_model=List[BlogOut])
 def get_blogs(db = Depends(get_db)):
@@ -28,6 +40,11 @@ def get_blog(blog_id: int, db = Depends(get_db)):
 
 @api_router.post('/', response_model=BlogOut)
 def create_blog(blog_in: BlogCreate, db = Depends(get_db)):
+    stmt = select(Author).where(Author.id == blog_in.author_id)
+    author = db.scalar(stmt)
+    if not author:
+        raise HTTPException(status_code=400, detail=f"{blog_in.author_id} idli user mavjud emas")
+
     blog = Blog(
         **blog_in.model_dump()
     )
