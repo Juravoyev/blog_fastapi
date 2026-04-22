@@ -9,7 +9,8 @@ class AuthorBase(BaseModel):
 
 
 class AuthorCreate(AuthorBase):
-    pass
+    username: str = Field(max_length=50)
+    password: str = Field(min_length=6)
 
 class AuthorOut(AuthorBase):
     id: int
@@ -20,11 +21,10 @@ class AuthorOut(AuthorBase):
 class BlogBase(BaseModel):
     title: str = Field(max_length=100)
     body: str = Field()
-    author_id: int
+    
 
 class BlogCreate(BlogBase):
-    published_at: datetime
-    pass
+    published_at: Optional[datetime] = None
 
 class BlogUpdate(BaseModel):
     title: Optional[str] = None
@@ -35,9 +35,14 @@ class BlogUpdate(BaseModel):
 
 class BlogOut(BlogBase):
     id: int
-
+    author_id: int
     created_at: datetime
     updated_at: datetime
     published_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str

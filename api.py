@@ -1,33 +1,58 @@
-from fastapi import APIRouter, HTTPException, Depends
+import jwt
+import security
+
+from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy import select
-from schemas import BlogCreate, BlogOut, BlogUpdate, AuthorCreate, AuthorOut
+from schemas import BlogCreate, BlogOut, BlogUpdate, AuthorCreate, AuthorOut, Token
 from database import Base, get_db, engine
 from models import Blog, Author
 from typing import List
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
 
 
-Base.metadata.create_all(bind=engine)
+
 api_router = APIRouter(prefix='/api/blog')
 
-@api_router.post('/authors', response_model=AuthorOut)
-def create_author(author_in: AuthorCreate, db = Depends(get_db)):
-    author = Author(
-        **author_in.model_dump()
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Token yaroqsiz yoki muddati tugagan"
     )
+    try:
+        payload = jwt.decode(token, security.SECRET_KEY, algorithms=[security.ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except jwt.InvalidTokenError:
+        raise credentials_exception
 
-    db.add(author)
-    db.commit()
-    db.refresh(author)
+    user = db.scalar(select(Author).where(Author.id == int(user_id)))
+    if user is None:
+        raise credentials_exception
 
-    return author
+    return user
 
-@api_router.get('/', response_model=List[BlogOut])
-def get_blogs(db = Depends(get_db)):
-    stmt = select(Blog)
-    blogs = db.scalars(stmt).all()
 
-    return blogs
+@api_router.post('/authors/login', response_model=Token)
+def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):    
+    user = db.scalar(select(Author).where(Author.username == form.username))
+    
+    if not user:
+        print("Foydalanuvchi topilmadi!")
+        raise HTTPException(status_code=400, detail="Bunday foydalanuvchi mavjud emas")
 
+    print(f"User hashed_password uzunligi: {len(user.hashed_password) if user.hashed_password else 0}")
+
+    if not security.verify_password(form.password, user.hashed_password):
+        print("Parol mos kelmadi!")
+        raise HTTPException(status_code=400, detail="Username yoki parol noto'g'ri")
+
+    access_token = security.create_access_token(data={"sub": str(user.id)})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 @api_router.get('/{blog_id}', response_model=BlogOut)
 def get_blog(blog_id: int, db = Depends(get_db)):
@@ -38,22 +63,34 @@ def get_blog(blog_id: int, db = Depends(get_db)):
         raise HTTPException(status_code=404, detail=f"{blog_id}-raqamli blog mavjud emas.")
     return blog
 
-@api_router.post('/', response_model=BlogOut)
-def create_blog(blog_in: BlogCreate, db = Depends(get_db)):
-    stmt = select(Author).where(Author.id == blog_in.author_id)
-    author = db.scalar(stmt)
-    if not author:
-        raise HTTPException(status_code=400, detail=f"{blog_in.author_id} idli user mavjud emas")
 
-    blog = Blog(
-        **blog_in.model_dump()
-    )
+@api_router.post('/authors', response_model=AuthorOut)
+def create_author(author_in: AuthorCreate, db = Depends(get_db)):
+    author = db.scalar(select(Author).where(Author.username == author_in.username))
+    if author:
+        raise HTTPException(status_code=400, detail=f"{author_in.username}-foydalanuvchi mavjud.")
+    
+    author_dict = author_in.model_dump()
+    hashed_password = security.get_password_hash(author_dict.pop('password'))
 
-    db.add(blog)
+    new_author = Author(**author_dict, hashed_password=hashed_password)
+    db.add(new_author)
     db.commit()
-    db.refresh(blog)
+    db.refresh(new_author)
 
-    return blog
+    return new_author
+
+
+@api_router.post('/', response_model=BlogOut)
+def create_blog(blog_in: BlogCreate, db = Depends(get_db), current_user: Author = Depends(get_current_user)):
+    blog_dict = blog_in.model_dump()
+    new_blog = Blog(**blog_dict, author_id=current_user.id)
+    db.add(new_blog)
+    db.commit()
+    db.refresh(new_blog)
+
+    return new_blog
+
 
 @api_router.put('/{blog_id}', response_model=BlogOut)
 def update_blog(blog_id: int, blog_in: BlogUpdate, db=Depends(get_db)):

@@ -9,11 +9,15 @@ class Author(Base):
     __tablename__='authors'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String(length=50), unique=True)
     first_name: Mapped[str] = mapped_column(String(length=100))
     last_name: Mapped[str] = mapped_column(String(length=100))
 
     blogs: Mapped[List["Blog"]] = relationship(back_populates='author')
 
+    hashed_password: Mapped[str]= mapped_column(String(length=200))
+    commented: Mapped[bool] = mapped_column(Boolean, default=False)
+    likes: Mapped[int] = mapped_column(Integer, default=0)
 
 class Blog(Base):
     __tablename__='blogs'
@@ -29,4 +33,5 @@ class Blog(Base):
         onupdate=func.now()
     )
     published_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+
     
