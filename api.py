@@ -1,7 +1,9 @@
 import jwt
 import security
 
-from fastapi import APIRouter, HTTPException, Depends, status
+
+from email_service import send_telegram_message, send_welcome_email
+from fastapi import APIRouter, HTTPException, Depends, status, BackgroundTasks
 from sqlalchemy import select
 from schemas import BlogCreate, BlogOut, BlogUpdate, AuthorCreate, AuthorOut, Token
 from database import get_db
@@ -37,6 +39,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     return user
 
 
+@api_router.post('/users/send_telegram_message')
+async def send_telegram_message_endpoint(chat_id: str, message: str, bg_tasks: BackgroundTasks):
+    bg_tasks.add_task(send_telegram_message, chat_id, message)
+    return {"status": "Message sent"}
+
 @api_router.post('/authors/login', response_model=Token)
 async def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):    
     user = await db.scalar(select(Author).where(Author.username == form.username))
@@ -65,7 +72,7 @@ async def get_blog(blog_id: int, db = Depends(get_db)):
 
 
 @api_router.post('/authors', response_model=AuthorOut)
-async def create_author(author_in: AuthorCreate, db = Depends(get_db)):
+async def create_author(bg_tasks: BackgroundTasks, author_in: AuthorCreate, db = Depends(get_db)):
     author = await db.scalar(select(Author).where(Author.username == author_in.username))
     if author:
         raise HTTPException(status_code=400, detail=f"{author_in.username}-foydalanuvchi mavjud.")
@@ -78,6 +85,7 @@ async def create_author(author_in: AuthorCreate, db = Depends(get_db)):
     await db.commit()
     await db.refresh(new_author)
 
+    bg_tasks.add_task(send_welcome_email, f"{new_author.username}@gmail.com")
     return new_author
 
 
