@@ -22,6 +22,7 @@ async def detect_browser(request: Request, call_next):
     response = await call_next(request)
     return response
 
+
 # @app.middleware("http")
 # async def maintenance_mode(request: Request, call_next):
 #     return JSONResponse(

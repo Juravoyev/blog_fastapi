@@ -4,11 +4,11 @@ import security
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy import select
 from schemas import BlogCreate, BlogOut, BlogUpdate, AuthorCreate, AuthorOut, Token
-from database import Base, get_db, engine
+from database import get_db
 from models import Blog, Author
-from typing import List
+
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession as Session
 
 
 
@@ -17,7 +17,7 @@ api_router = APIRouter(prefix='/api/blog')
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Token yaroqsiz yoki muddati tugagan"
@@ -30,7 +30,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except jwt.InvalidTokenError:
         raise credentials_exception
 
-    user = db.scalar(select(Author).where(Author.id == int(user_id)))
+    user =  await db.scalar(select(Author).where(Author.id == int(user_id)))
     if user is None:
         raise credentials_exception
 
@@ -38,8 +38,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 
 @api_router.post('/authors/login', response_model=Token)
-def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):    
-    user = db.scalar(select(Author).where(Author.username == form.username))
+async def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):    
+    user = await db.scalar(select(Author).where(Author.username == form.username))
     
     if not user:
         print("Foydalanuvchi topilmadi!")
@@ -55,9 +55,9 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
     return {"access_token": access_token, "token_type": "bearer"}
 
 @api_router.get('/{blog_id}', response_model=BlogOut)
-def get_blog(blog_id: int, db = Depends(get_db)):
+async def get_blog(blog_id: int, db = Depends(get_db)):
     stmt = select(Blog).where(Blog.id == blog_id)
-    blog = db.scalar(stmt)
+    blog = await db.scalar(stmt)
 
     if not blog:
         raise HTTPException(status_code=404, detail=f"{blog_id}-raqamli blog mavjud emas.")
@@ -65,8 +65,8 @@ def get_blog(blog_id: int, db = Depends(get_db)):
 
 
 @api_router.post('/authors', response_model=AuthorOut)
-def create_author(author_in: AuthorCreate, db = Depends(get_db)):
-    author = db.scalar(select(Author).where(Author.username == author_in.username))
+async def create_author(author_in: AuthorCreate, db = Depends(get_db)):
+    author = await db.scalar(select(Author).where(Author.username == author_in.username))
     if author:
         raise HTTPException(status_code=400, detail=f"{author_in.username}-foydalanuvchi mavjud.")
     
@@ -75,28 +75,28 @@ def create_author(author_in: AuthorCreate, db = Depends(get_db)):
 
     new_author = Author(**author_dict, hashed_password=hashed_password)
     db.add(new_author)
-    db.commit()
-    db.refresh(new_author)
+    await db.commit()
+    await db.refresh(new_author)
 
     return new_author
 
 
 @api_router.post('/', response_model=BlogOut)
-def create_blog(blog_in: BlogCreate, db = Depends(get_db), current_user: Author = Depends(get_current_user)):
+async def create_blog(blog_in: BlogCreate, db = Depends(get_db), current_user: Author = Depends(get_current_user)):
     blog_dict = blog_in.model_dump()
     new_blog = Blog(**blog_dict, author_id=current_user.id)
     db.add(new_blog)
-    db.commit()
-    db.refresh(new_blog)
+    await db.commit()
+    await db.refresh(new_blog)
 
     return new_blog
 
 
 @api_router.put('/{blog_id}', response_model=BlogOut)
-def update_blog(blog_id: int, blog_in: BlogUpdate, db=Depends(get_db)):
+async def update_blog(blog_id: int, blog_in: BlogUpdate, db=Depends(get_db)):
     # 1. Fetch the existing record
     stmt = select(Blog).where(Blog.id == blog_id)
-    blog = db.scalar(stmt)
+    blog = await db.scalar(stmt)
 
     if not blog:
         raise HTTPException(status_code=404, detail=f"{blog_id}-blog topilmadi.")
@@ -110,16 +110,16 @@ def update_blog(blog_id: int, blog_in: BlogUpdate, db=Depends(get_db)):
         setattr(blog, key, value)
 
     # 4. Commit and Refresh
-    db.commit()
-    db.refresh(blog)
+    await db.commit()
+    await db.refresh(blog)
     
     return blog
 
 
 @api_router.delete('/{blog_id}')
-def delete_blog(blog_id: int, db = Depends(get_db)):
+async def delete_blog(blog_id: int, db = Depends(get_db)):
     stmt = select(Blog).where(Blog.id == blog_id)
-    blog = db.scalar(stmt)
+    blog = await db.scalar(stmt)
 
     if not blog:
         raise HTTPException(status_code=404, detail=f"{blog_id}-raqamli blog mavjud emas")
