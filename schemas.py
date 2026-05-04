@@ -14,6 +14,7 @@ class AuthorCreate(AuthorBase):
 
 class AuthorOut(AuthorBase):
     id: int
+    user_avatar: Optional[str] = None
 
 
 

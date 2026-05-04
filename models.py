@@ -18,6 +18,7 @@ class Author(Base):
     hashed_password: Mapped[str]= mapped_column(String(length=200))
     commented: Mapped[bool] = mapped_column(Boolean, default=False)
     likes: Mapped[int] = mapped_column(Integer, default=0)
+    avatar: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
 class Blog(Base):
     __tablename__='blogs'

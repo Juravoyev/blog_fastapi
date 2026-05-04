@@ -1,9 +1,11 @@
+import shutil
+import os
 import jwt
 import security
 
 
 from email_service import send_telegram_message, send_welcome_email
-from fastapi import APIRouter, HTTPException, Depends, status, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, status, BackgroundTasks, File, UploadFile
 from sqlalchemy import select
 from schemas import BlogCreate, BlogOut, BlogUpdate, AuthorCreate, AuthorOut, Token
 from database import get_db
@@ -89,6 +91,34 @@ async def create_author(bg_tasks: BackgroundTasks, author_in: AuthorCreate, db =
     return new_author
 
 
+UPLOAD_DIR = "uploads/avatars"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+@api_router.post("/authors/avatar")
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: Author = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    
+    file_ext = file.filename.split(".")[-1]
+    file_name = f"user_{current_user.id}.{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, file_name)
+
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+
+    current_user.avatar = file_path
+    await db.commit()
+    await db.refresh(current_user)
+
+    return {"avatar": file_path}
+
+
+
 @api_router.post('/', response_model=BlogOut)
 async def create_blog(blog_in: BlogCreate, db = Depends(get_db), current_user: Author = Depends(get_current_user)):
     blog_dict = blog_in.model_dump()
@@ -109,11 +139,10 @@ async def update_blog(blog_id: int, blog_in: BlogUpdate, db=Depends(get_db)):
     if not blog:
         raise HTTPException(status_code=404, detail=f"{blog_id}-blog topilmadi.")
 
-    # 2. FIX: Convert the schema to a dictionary of Python objects
-    # 'exclude_unset=True' ensures we only update what the user sent
+
     update_data = blog_in.model_dump(exclude_unset=True)
 
-    # 3. Apply the changes
+
     for key, value in update_data.items():
         setattr(blog, key, value)
 
@@ -132,8 +161,8 @@ async def delete_blog(blog_id: int, db = Depends(get_db)):
     if not blog:
         raise HTTPException(status_code=404, detail=f"{blog_id}-raqamli blog mavjud emas")
 
-    db.delete(blog)
-    db.commit()
+    await db.delete(blog)
+    await db.commit()
 
     return {"status": 204}
 
